@@ -34,7 +34,8 @@ var CountryInterface map[string] *Country
 
 func main() {
 	countryPtr := flag.String("country", "", "Country name you want to get COVID19 status.\nSeparate with comma ',' to use multiple country")
-	addressPtr := flag.String("listen.address",":10198", "Port listen address")
+	addressPtr := flag.String("listen.address",":10198", " listen address")
+	updateIntervalPtr := flag.Duration("update.interval",5 , "Update interval in minutes")
 	flag.Parse()
 	if *countryPtr=="" {
 		flag.PrintDefaults()
@@ -64,7 +65,7 @@ func main() {
 				CountryInterface[key].Recovered.Set(float64(result.Recovered.Value))
 				CountryInterface[key].DeathRate.Set(result.CaseFatalityRate)
 				CountryInterface[key].RecoveryRate.Set(result.CaseRecoveryRate)
-				time.Sleep(5 * time.Second)
+				time.Sleep(*updateIntervalPtr * time.Minute)
 			}
 		}(key)
 	}
