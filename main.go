@@ -3,86 +3,115 @@ package main
 import (
 	"errors"
 	"flag"
-	"net/http"
-	"os"
-	"time"
-
 	cga "github.com/guaychou/corona-api"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
+	"net/http"
+	"os"
+	"strings"
+	"time"
 )
+type Country struct {
+	Confirmed prometheus.Gauge
+	Recovered prometheus.Gauge
+	Death prometheus.Gauge
+	DeathRate prometheus.Gauge
+	RecoveryRate prometheus.Gauge
+}
+
+type CountryMetrics struct {
+	Confirmed prometheus.GaugeOpts
+	Recovered prometheus.GaugeOpts
+	Death prometheus.GaugeOpts
+	DeathRate prometheus.GaugeOpts
+	RecoveryRate prometheus.GaugeOpts
+}
+
+var MetricsInterface map[string] *CountryMetrics
+var CountryInterface map[string] *Country
+
 
 func main() {
-	countryPtr := flag.String("country", "", "Country name you want to get COVID19 status")
-	addressPtr := flag.String("listen.address",":10198", "Port listen address")
+	countryPtr := flag.String("country", "", "Country name you want to get COVID19 status.\nSeparate with comma ',' to use multiple country")
+	addressPtr := flag.String("listen.address",":10198", " listen address")
+	updateIntervalPtr := flag.Duration("update.interval",5 , "Update interval in minutes")
 	flag.Parse()
 	if *countryPtr=="" {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
-	err:=checkCountry(countryPtr)
-	if err!=nil{
-		log.Fatal(err)
-	}
-	var (
-		confirmed = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "confirmed_corona_"+*countryPtr,
-			Help: "Current total confirmed corona in "+*countryPtr,
-		})
-		recovered = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "recovered_corona_"+*countryPtr,
-			Help: "Current total recovered corona in "+*countryPtr,
-		})
-		recoveryRate =prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "recovery_rate_corona_"+*countryPtr,
-			Help: "Current recovery rate in "+*countryPtr,
-		})
-		death = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "death_corona_"+*countryPtr,
-			Help: "Current total death people in "+*countryPtr,
-		})
-		deathRate =prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "death_rate_corona_"+*countryPtr,
-			Help: "Current fatality rate in "+*countryPtr,
-		})
-	)
-	prometheus.MustRegister(confirmed)
-	prometheus.MustRegister(recovered)
-	prometheus.MustRegister(death)
-	prometheus.MustRegister(deathRate)
-	prometheus.MustRegister(recoveryRate)
-	go func() {
-		log.Info("Scrapping corona status in "+*countryPtr)
-		for {
-			result:=get(countryPtr)
-			log.Info("Scrapped . . . ")
-			setPrometheusValue(confirmed, recovered, death,deathRate,recoveryRate, result)
-			time.Sleep(5 * time.Second)
+	MetricsInterface = make(map[string] *CountryMetrics)
+	CountryInterface = make(map[string] *Country)
+	countrySplit:=strings.Split(*countryPtr,",")
+	for _,value :=range(countrySplit){
+		err:=checkCountry(value)
+		if err!=nil{
+			log.Fatal(err)
 		}
-	}()
+		setGaugeOpts(value)
+		setGauge(value)
+		registerGauge(value)
+	}
+
+	for key:=range CountryInterface{
+		go func(key string) {
+			log.Info("Scrapping corona status in "+key)
+			for {
+				result:=get(key)
+				log.Info("Country: "+key+" has been scrapped . . .")
+				CountryInterface[key].Confirmed.Set(float64(result.Confirmed.Value))
+				CountryInterface[key].Death.Set(float64(result.Deaths.Value))
+				CountryInterface[key].Recovered.Set(float64(result.Recovered.Value))
+				CountryInterface[key].DeathRate.Set(result.CaseFatalityRate)
+				CountryInterface[key].RecoveryRate.Set(result.CaseRecoveryRate)
+				time.Sleep(*updateIntervalPtr * time.Minute)
+			}
+		}(key)
+	}
+
 	http.Handle("/metrics", promhttp.Handler())
 	log.Println("Web Server started. Listening on address "+*addressPtr)
 	log.Fatal(http.ListenAndServe(*addressPtr, nil))
 }
 
-func checkCountry(countryPtr *string) error {
-	result:=get(countryPtr)
+func checkCountry(country string) error {
+	result:=get(country)
 	if result.Recovered.Value==-1 || result.Deaths.Value==-1 || result.Confirmed.Value==-1{
-		return errors.New("Country not found")
+		return errors.New("Country "+country+" not found")
 	}
 	return nil
 }
 
-func get(country *string)cga.CurrentCoronaStatus{
-		result:=cga.GetCorona(*country)
+func get(country string)cga.CurrentCoronaStatus{
+		result:=cga.GetCorona(country)
 		return result
 }
 
-func setPrometheusValue(confirmed prometheus.Gauge, recovered prometheus.Gauge, death prometheus.Gauge,deathRate prometheus.Gauge,recoveryRate prometheus.Gauge, result cga.CurrentCoronaStatus){
-	confirmed.Set(float64(result.Confirmed.Value))
-	recovered.Set(float64(result.Recovered.Value))
-	death.Set(float64(result.Deaths.Value))
-	deathRate.Set(result.CaseFatalityRate)
-	recoveryRate.Set(result.CaseRecoveryRate)
+func setGaugeOpts(param string){
+	metrics:=new(CountryMetrics)
+	metrics.Confirmed.Name="confirmed_corona_"+param
+	metrics.Death.Name="death_corona_"+param
+	metrics.Recovered.Name="recovered_corona_"+param
+	metrics.DeathRate.Name="death_rate_corona_"+param
+	metrics.RecoveryRate.Name="recovery_rate_corona_"+param
+	MetricsInterface[param]=metrics
+}
+
+func setGauge(param string){
+	country:=new(Country)
+	country.Recovered=prometheus.NewGauge(MetricsInterface[param].Recovered)
+	country.Death=prometheus.NewGauge(MetricsInterface[param].Death)
+	country.Confirmed=prometheus.NewGauge(MetricsInterface[param].Confirmed)
+	country.DeathRate=prometheus.NewGauge(MetricsInterface[param].DeathRate)
+	country.RecoveryRate=prometheus.NewGauge(MetricsInterface[param].RecoveryRate)
+	CountryInterface[param]=country
+}
+
+func registerGauge(param string){
+	prometheus.MustRegister(CountryInterface[param].Confirmed)
+	prometheus.MustRegister(CountryInterface[param].Recovered)
+	prometheus.MustRegister(CountryInterface[param].Death)
+	prometheus.MustRegister(CountryInterface[param].RecoveryRate)
+	prometheus.MustRegister(CountryInterface[param].DeathRate)
 }
