@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"net/http"
 	"os"
@@ -19,6 +20,10 @@ func main() {
 	if *countryPtr=="" {
 		flag.PrintDefaults()
 		os.Exit(1)
+	}
+	err:=checkCountry(countryPtr)
+	if err!=nil{
+		log.Fatal(err)
 	}
 	var (
 		confirmed = prometheus.NewGauge(prometheus.GaugeOpts{
@@ -51,6 +56,7 @@ func main() {
 		log.Info("Scrapping corona status in "+*countryPtr)
 		for {
 			result:=get(countryPtr)
+			log.Info("Scrapped . . . ")
 			setPrometheusValue(confirmed, recovered, death,deathRate,recoveryRate, result)
 			time.Sleep(5 * time.Second)
 		}
@@ -60,9 +66,16 @@ func main() {
 	log.Fatal(http.ListenAndServe(*portPtr, nil))
 }
 
+func checkCountry(countryPtr *string) error {
+	result:=get(countryPtr)
+	if result.Recovered.Value==-1 || result.Deaths.Value==-1 || result.Confirmed.Value==-1{
+		return errors.New("Country not found")
+	}
+	return nil
+}
+
 func get(country *string)cga.CurrentCoronaStatus{
 		result:=cga.GetCorona(*country)
-		log.Info("Scrapped . . . ")
 		return result
 }
 
