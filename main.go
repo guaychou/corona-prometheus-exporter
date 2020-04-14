@@ -33,7 +33,7 @@ var CountryInterface map[string] *Country
 
 
 func main() {
-	countryPtr := flag.String("country", "", "Country name you want to get COVID19 status")
+	countryPtr := flag.String("country", "", "Country name you want to get COVID19 status.\nSeparate with comma ',' to use multiple country")
 	addressPtr := flag.String("listen.address",":10198", "Port listen address")
 	flag.Parse()
 	if *countryPtr=="" {
