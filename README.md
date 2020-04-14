@@ -14,8 +14,13 @@ death_rate_corona_\<CountryName> | Current case fatality rate COVID19 in specifi
 $ ./corona-exporter --country=indonesia
 ```
 
-Default port in this exporter is 10198 if you want to change use listen.port flag
+Default listen address in this exporter is 0.0.0.0:10198 if you want to change use listen.port flag
 
 ```cassandraql
-$ ./corona-exporter --country=indonesia --listen.port=":8080"
+$ ./corona-exporter --country=indonesia --listen.address="127.0.0.1:8081"
 ```
+
+### Screenshot
+
+![Prometheus corona status in Indonesia](img/image.png)
+

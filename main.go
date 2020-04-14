@@ -15,7 +15,7 @@ import (
 
 func main() {
 	countryPtr := flag.String("country", "", "Country name you want to get COVID19 status")
-	portPtr := flag.String("listen.port",":10198", "Port listen address")
+	addressPtr := flag.String("listen.address",":10198", "Port listen address")
 	flag.Parse()
 	if *countryPtr=="" {
 		flag.PrintDefaults()
@@ -62,8 +62,8 @@ func main() {
 		}
 	}()
 	http.Handle("/metrics", promhttp.Handler())
-	log.Println("Web Server started. Listening on port "+*portPtr)
-	log.Fatal(http.ListenAndServe(*portPtr, nil))
+	log.Println("Web Server started. Listening on address "+*addressPtr)
+	log.Fatal(http.ListenAndServe(*addressPtr, nil))
 }
 
 func checkCountry(countryPtr *string) error {
