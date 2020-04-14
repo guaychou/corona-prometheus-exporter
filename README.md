@@ -3,7 +3,7 @@ This is corona exporter for prometheus
 
 Metrics | Description
 ------------- | -------------
-confirmed_corona_\<CountryName>  | Current total confirmed positive COVID19
+confirmed_corona_\<CountryName>  | Current total confirmed positive COVID19 in specified country
 death_corona_\<CountryName>  | Current total death people in specified country
 recovered_corona_\<CountryName> | Current total recovered people in specified country
 recovery_rate_corona_\<CountryName> | Current recovery rate COVID19 in specified country
