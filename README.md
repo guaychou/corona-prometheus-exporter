@@ -14,7 +14,7 @@ death_rate_corona_\<CountryName> | Current case fatality rate COVID19 in specifi
 $ ./corona-exporter --country=indonesia
 ```
 
-Default listen address in this exporter is 0.0.0.0:10198 if you want to change use listen.port flag
+Default listen address in this exporter is 0.0.0.0:10198 if you want to change use _listen.address_ flag
 
 ```cassandraql
 $ ./corona-exporter --country=indonesia --listen.address="127.0.0.1:8081"
