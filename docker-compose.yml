@@ -1,0 +1,29 @@
+version: "3.7"
+
+services:
+  corona-exporter:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: corona-exporter:v1.0.0
+    command:
+      - '--country=indonesia,japan,china'
+    ports:
+      - 10198:10198
+  prometheus:
+    image: lordchou/prometheus:1.0.2
+    restart: always
+    volumes:
+      - ./config:/etc/prometheus/
+    ports:
+      - 9090:9090
+  grafana:
+    image: lordchou/grafana:1.0.0
+    depends_on:
+      - prometheus
+    environment:
+      - PROMETHEUS_URL=prometheus
+      - PROMETHEUS_PORT=9090
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource,grafana-piechart-panel
+    ports:
+      - 3000:3000
