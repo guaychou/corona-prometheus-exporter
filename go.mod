@@ -1,4 +1,4 @@
-module github.com/guaychou/learn-prometheus
+module github.com/guaychou/corona-prometheus-exporter
 
 go 1.13
 

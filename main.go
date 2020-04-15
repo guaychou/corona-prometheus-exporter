@@ -73,7 +73,8 @@ func main() {
 			log.Fatal(err)
 		}
 	}
-
+	http.Handle("/metrics", promhttp.Handler())
+	log.Println("Web Server started. Listening on address "+*addressPtr)
 	for _,value :=range(countrySplit){
 		go func(value string) {
 			log.Info("Scrapping corona status in "+value)
@@ -90,8 +91,6 @@ func main() {
 
 		}(value)
 	}
-	http.Handle("/metrics", promhttp.Handler())
-	log.Println("Web Server started. Listening on address "+*addressPtr)
 	log.Fatal(http.ListenAndServe(*addressPtr, nil))
 }
 
