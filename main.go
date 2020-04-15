@@ -8,9 +8,6 @@ import (
 	"strings"
 	"time"
 
-	//"os"
-	//"time"
-
 	cga "github.com/guaychou/corona-api"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -21,32 +18,32 @@ import (
 
 var (
 	confirmed = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "total_confirmed_corona",
-		Help: "Current total confirmed corona",
+		Name: "total_confirmed_corona_in_country",
+		Help: "Current total confirmed corona in country",
 	},
 		[]string{"country"},
 	)
 	recovered = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "total_recovered_corona",
-		Help: "Current total recovered corona",
+		Name: "total_recovered_corona_in_country",
+		Help: "Current total recovered corona in country",
 	},
 		[]string{"country"},
 	)
 	recoveryRate = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "recovery_rate_corona",
-		Help: "Current recovery rate",
+		Name: "recovery_rate_corona_in_country",
+		Help: "Current recovery rate in country",
 	},
 		[]string{"country"},
 	)
 	death = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "total_death_corona",
-		Help: "Current total death people",
+		Name: "total_death_corona_in_country",
+		Help: "Current total death people in country",
 	},
 		[]string{"country"},
 	)
 	deathRate = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "death_rate_corona",
-		Help: "Current fatality rate",
+		Name: "death_rate_corona_in_country",
+		Help: "Current fatality rate in country",
 	},
 		[]string{"country"},
 	)
@@ -62,7 +59,7 @@ func init(){
 func main() {
 	countryPtr := flag.String("country", "", "Country name you want to get COVID19 status")
 	addressPtr := flag.String("listen.address",":10198", "Port listen address")
-	updateIntervalPtr := flag.Duration("update.interval",5 , "Update interval in minutes")
+	updateIntervalPtr := flag.Int("update.interval",5 , "Update interval in minutes")
 	flag.Parse()
 	if *countryPtr=="" {
 		flag.PrintDefaults()
@@ -88,7 +85,7 @@ func main() {
 				recovered.WithLabelValues(value).Set(float64(result.Recovered.Value))
 				recoveryRate.WithLabelValues(value).Set(result.CaseRecoveryRate)
 				deathRate.WithLabelValues(value).Set(result.CaseFatalityRate)
-				time.Sleep(*updateIntervalPtr * time.Minute)
+				time.Sleep(time.Duration(*updateIntervalPtr) * time.Minute)
 			}
 
 		}(value)
