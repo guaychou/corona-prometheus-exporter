@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"flag"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -47,6 +48,8 @@ var (
 	},
 		[]string{"country"},
 	)
+
+
 )
 
 func init(){
@@ -73,13 +76,15 @@ func main() {
 			log.Fatal(err)
 		}
 	}
+	http.HandleFunc("/healthz", healthcheck)
 	http.Handle("/metrics", promhttp.Handler())
 	log.Println("Web Server started. Listening on address "+*addressPtr)
 	for _,value :=range(countrySplit){
 		go func(value string) {
+			var result cga.CurrentCoronaStatus
 			log.Info("Scrapping corona status in "+value)
 			for {
-				result:=get(value)
+				result=get(value)
 				log.Info("Country: "+value+" has been scrapped . . .")
 				confirmed.WithLabelValues(value).Set(float64(result.Confirmed.Value))
 				death.WithLabelValues(value).Set(float64((result.Deaths.Value)))
@@ -105,4 +110,8 @@ func checkCountry(country string) error {
 func get(country string)cga.CurrentCoronaStatus{
 	result:=cga.GetCorona(country)
 	return result
+}
+
+func healthcheck(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "I'm feeling good")
 }
