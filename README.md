@@ -11,7 +11,7 @@ death_rate_corona_in_country | Current case fatality rate COVID19 in specified c
 
 ### How To Run
 ```cassandraql
-$ ./corona-exporter --country=indonesia
+$ ./corona-prometheus-exporter --country=indonesia
 ```
 
 Default listen address in this exporter is 0.0.0.0:10198 if you want to change use _listen.address_ flag.
